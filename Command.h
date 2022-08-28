@@ -9,9 +9,9 @@ class Command {
     std::string description;
     DefaultIO dio;
     public:
-    virtual void execute();
-    virtual std::string getDescription();
-    virtual DefaultIO getDeafaultIO();
+    virtual void execute() const;
+    virtual std::string getDescription() const;
+    virtual DefaultIO getDeafaultIO() const;
 };
 
 #endif

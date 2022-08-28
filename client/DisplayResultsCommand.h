@@ -1,0 +1,3 @@
+class DisplayResultsCommand : protected Command {
+    
+}
