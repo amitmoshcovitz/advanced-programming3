@@ -1,7 +1,13 @@
 #ifndef _CLI
 #define _CLI
 #include "../Command.h"
-
+#include "UploadCommand.h"
+#include "SettingsCommand.h"
+#include "ClassifyCommand.h"
+#include "DisplayResultsCommand.h"
+#include "DownloadResultsCommand.h"
+#include "DisplayConfusionMatrixCommand.h"
+#include "ExitCommand.h"
 class CLI {
     private:
     const Command *commands[7] = {
