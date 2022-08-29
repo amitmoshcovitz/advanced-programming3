@@ -5,7 +5,7 @@
 #include "DefaultIO.h"
 
 class Command {
-    private:
+    protected:
     std::string description;
     DefaultIO dio;
     public:
