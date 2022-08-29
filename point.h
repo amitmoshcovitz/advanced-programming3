@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -49,7 +50,8 @@ class Point {
     enum DistanceMetric {
         EUCLIDEAN,
         MANHATTAN,
-        CHEBYSHEV
+        CHEBYSHEV,
+        ERR
     };
 
     /**
@@ -85,5 +87,12 @@ class Point {
      * @return the dimension of this point
      */
     int getDimension() const;
+
+    /**
+     * Convert string to distance metric.
+     * @param str string representation of the distance metric, either "EUC", "MAN" or "CHE"
+     * @return DistanceMetric enum
+     */
+    static DistanceMetric stringToMetric(string str);
 };
 #endif

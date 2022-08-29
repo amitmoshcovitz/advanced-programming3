@@ -1,8 +1,10 @@
 #ifndef _DEFAULT_IO
 #define _DEFAULT_IO
+#include <string>
+
 class DefaultIO {
     public:
-    void write(std::string) const;
-    std::string read() const;
+    virtual void write(std::string str) const = 0;
+    virtual std::string read() const = 0;
 };
 #endif

@@ -1,3 +1,5 @@
+#ifndef SERVER_H
+#define SERVER_H
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -9,6 +11,16 @@
 #include "../point.h"
 #include <fstream>
 #include <queue>
+#include "../DefaultIO.h"
+#include "../Command.h"
+#include "../SocketIO.h"
+#include "../StandardIO.h"
+#include <string>
+#include <thread>
+
+using namespace std;
+
+#define IO 1
 
 class Server {
     private:
@@ -43,6 +55,12 @@ class Server {
         Server* server;
         vector<Point> testPoints;
         vector<string> testResults;
+        #if IO == 0
+        SocketIO dio;
+        #else
+        StandardIO dio;
+        #endif
+        vector<Command*> commands;
         bool isStopped;
         bool running;
 
@@ -73,6 +91,11 @@ class Server {
          */
         bool isRunning();
 
+        /**
+         * The task for the thread.
+         */
+        void run();
+
         private:
         /**
          * Accepts a connection from a client.
@@ -80,30 +103,11 @@ class Server {
         int acceptClient() const;
 
         /**
-         * Send a message to a client.
-         * @param clientSock The socket to send the message to.
-         * @param message The message to send.
-         */
-        void sendToClient(int clientSock, string message) const;
-
-        /**
-         * Receive a message from a client.
-         * @param clientSock The socket to receive the message from.
-         * @return The message.
-         */
-        string receiveFromClient(int clientSock) const;
-
-        /**
          * Detects if a point is in the right dimension.
          * @param point The point to check.
          * @return Whether the point is in the right dimension.
          */
         bool isValid(const Point &point) const;
-
-        /**
-         * The task for the thread.
-         */
-        void run();
 
         /**
          * Resets the data from the previous client.
@@ -129,9 +133,61 @@ class Server {
          */
         bool handleTestUpload(string file);
 
-        /**
-         * Processes a client's test file.
-         */
-        void processTest();
+        class UploadCommand : public Command {
+            private:
+            ServerThread* serverThread;
+            public:
+            UploadCommand(DefaultIO* dio, ServerThread* serverThread);
+            void execute() const;
+        };
+
+        class AlgorithmSettingsCommand : public Command {
+            private:
+            ServerThread* serverThread;
+            public:
+            AlgorithmSettingsCommand(DefaultIO* dio, ServerThread* serverThread);
+            void execute() const;
+        };
+
+        class DetectCommand : public Command {
+            private:
+            ServerThread* serverThread;
+            public:
+            DetectCommand(DefaultIO* dio, ServerThread* serverThread);
+            void execute() const;
+        };
+
+        class DisplayCommand : public Command {
+            private:
+            ServerThread* serverThread;
+            public:
+            DisplayCommand(DefaultIO* dio, ServerThread* serverThread);
+            void execute() const;
+        };
+
+        class DownloadCommand : public Command {
+            private:
+            ServerThread* serverThread;
+            public:
+            DownloadCommand(DefaultIO* dio, ServerThread* serverThread);
+            void execute() const;
+        };
+
+        class AnalyzeCommand : public Command {
+            private:
+            ServerThread* serverThread;
+            public:
+            AnalyzeCommand(DefaultIO* dio, ServerThread* serverThread);
+            void execute() const;
+        };
+
+        class ExitCommand : public Command {
+            private:
+            ServerThread* serverThread;
+            public:
+            ExitCommand(DefaultIO* dio, ServerThread* serverThread);
+            void execute() const;
+        };
     };
 };
+#endif

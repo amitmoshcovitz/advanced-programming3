@@ -10,14 +10,13 @@
 using namespace std;
 
 Point::Point(string data) {
-    vector<string> unhandleFields = split(data, ',');
-    int size = unhandleFields.size();
-    vector<double> fields = vector<double>(size);
-    for (int i = 0; i < size; i++) {
-        fields[i] = stod(unhandleFields[i]);
+    stringstream ss(data);
+    vector<double> fields;
+    while (getline(ss, data, ',')) {
+        fields.push_back(stod(data));
     }
     this->fields = fields;
-    this->size = size;
+    this->size = fields.size();
 }
 
 Point::Point() {
@@ -104,12 +103,23 @@ bool Point::operator<(const Point &other) const {
 string Point::toString(DistanceMetric distanceType) {
     switch (distanceType) {
         case EUCLIDEAN:
-            return "euclidean";
+            return "EUC";
         case MANHATTAN:
-            return "manhattan";
+            return "MAN";
         default:
-            return "chebyshev";
+            return "CHE";
     }
+}
+
+Point::DistanceMetric Point::stringToMetric(string str) {
+    if (str == "EUC") {
+        return EUCLIDEAN;
+    } else if (str == "MAN") {
+        return MANHATTAN;
+    } else if (str == "CHE") {
+        return CHEBYSHEV;
+    }
+    return ERR;
 }
 
 int Point::getDimension() const {

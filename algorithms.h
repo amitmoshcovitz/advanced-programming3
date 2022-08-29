@@ -5,6 +5,7 @@
 #include <sstream>
 #include "point.h"
 #include <map>
+#include <string>
 
 using namespace std;
 
@@ -89,4 +90,21 @@ bool isPoint(string& str);
  * @param str string to trim
  */
 void trim(string& str);
+
+/**
+ * Checks if a string is a number (int).
+ * @param str string to check
+ * @return true if the string is a number, false otherwise
+ */
+bool isInteger(string& str);
+
+template <typename T>
+int indexOf(vector<T>& vector, T& element) {
+    for (int i = 0; i < vector.size(); i++) {
+        if (vector[i] == element) {
+            return i;
+        }
+    }
+    return -1;
+}
 #endif

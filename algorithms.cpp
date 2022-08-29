@@ -5,14 +5,6 @@
 
 using namespace std;
 
-/**
- * Classifies a point.
- * @param unclassified point to classify
- * @param points the map of points to their classifications
- * @param distanceType the distance metric to use
- * @param k the number of neighbors to use
- * @return the classification of the point
- */
 string classify(Point unclassified, map<Point, string>& points, Point::DistanceMetric distanceType, int k) {
     int size = points.size();
     vector<Point> pointsVector = vector<Point>(size);
@@ -35,7 +27,7 @@ string classify(Point unclassified, map<Point, string>& points, Point::DistanceM
     return correctType.first;
 }
 
-vector<string> split(string& line, char delimiter) {
+vector<string> split(const string& line, char delimiter) {
     vector<string> resultVector;
     stringstream stringStream(line);
     string item;
@@ -50,14 +42,36 @@ bool isNumber(string& str) {
         return false;
     }
     bool wasThereADot = false;
+    bool isFirst = true;
     for (char c : str) {
-        if (!isdigit(c)) {
+        if (c == '-' && !isFirst) {
+            return false;
+        }
+        if (c != '-' && !isdigit(c)) {
             if (wasThereADot) {
                 return false;
             } else if (c == '.'){
                 wasThereADot = true;
             } else return false;
         }
+        isFirst = false;
+    }
+    return true;
+}
+
+bool isInteger(string& str) {
+    if (str.empty()) {
+        return false;
+    }
+    bool isFirst = true;
+    for (char c : str) {
+        if (c == '-' && !isFirst) {
+            return false;
+        }
+        if (c != '-' && !isdigit(c)) {
+            return false;
+        }
+        isFirst = false;
     }
     return true;
 }

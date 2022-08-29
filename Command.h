@@ -4,14 +4,15 @@
 #include <sstream>
 #include "DefaultIO.h"
 
+using namespace std;
+
 class Command {
     protected:
-    std::string description;
-    DefaultIO dio;
+    DefaultIO* dio;
+    string description;
     public:
-    virtual void execute() const;
-    virtual std::string getDescription() const;
-    virtual DefaultIO getDeafaultIO() const;
+    virtual void execute() const = 0;
+    string getDescription() const;
 };
 
 #endif
