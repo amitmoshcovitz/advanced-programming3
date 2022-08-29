@@ -21,15 +21,7 @@
 using namespace std;
 
 int main(int argc, char const *argv[]) {
-    if (argc < 3) {
-        return -1;
-    }
     const int sock_port = 5555;
-    int k = stoi(argv[2]);
-    if (k < 1) {
-        cout << "k must be greater than 0" << endl;
-        return -1;
-    }
     Server server(sock_port);
     server.run();
     close(sock_port);
@@ -38,7 +30,6 @@ int main(int argc, char const *argv[]) {
 
 
 Server::ServerThread::ServerThread(Server* server) {
-    this->k = 5;
     this-> server = server;
 }
 
@@ -61,59 +52,127 @@ int Server::ServerThread::acceptClient() const {
     return clientSock;
 }
 
-void Server::ServerThread::sendToClient(int clientSock, const char* buffer, int bufferSize) const {
-    int sentBytes = send(clientSock, buffer, bufferSize, 0);
+void Server::ServerThread::sendToClient(int clientSock, string message) const {
+    int sentBytes = send(clientSock, (message + END).c_str(), message.length() + 1, 0);
     if (sentBytes < 0) {
         perror("error sending to client");
     }
 }
 
-bool Server::ServerThread::receiveFromClient(int clientSock, char* buffer, int bufferSize) const {
-    int readBytes = recv(clientSock, buffer, bufferSize, 0);
-    if (readBytes < 0) {
-        perror("error reading from client");
-    }
-    return string(buffer).find(END) == string::npos;
+string Server::ServerThread::receiveFromClient(int clientSock) const {
+    const int bufferSize = 1024;
+    static char buffer[bufferSize];
+    stringstream ss;
+    do {
+        buffer[0] = '\0';
+        int receivedBytes = recv(clientSock, buffer, bufferSize, 0);
+        if (receivedBytes < 0) {
+            perror("error receiving from client");
+        }
+        ss << buffer;
+    } while (string(buffer).find(END) == string::npos);
+    string str = ss.str();
+    str.erase(str.length() - 1);
+    return str;
 }
 
 void Server::ServerThread::run() {
-    char buffer[1 << 12];
-    int expectedDataLen = sizeof(buffer);
-    while (true) {
-        buffer[0] = '\0';
-        stringstream ss;
+    running = true;
+    while (!(isStopped && server->clientSocks.empty())) {
         int clientSock = acceptClient();
+        reset();
         if (clientSock <= 0) {
-            return;
+            sleep(2);
+            continue;
         }
-        while (receiveFromClient(clientSock, buffer, expectedDataLen)) {
-            ss << buffer;
-        }
-        ss << buffer;
-        string line;
-        string ans = "";
-        while (getline(ss, line)) {
-            if (line[0] == END) break;
-            if (!isPoint(line)) {
-                ans += "Error: invalid point\n";
-                continue;
-            }
-            Point point(line);
-            if (!isValid(point)) {
-                ans += "Invalid point\n";
-                continue;
-            }
-            string cls = classify(point, points, metric, k);
-            ans += cls + "\n";
-        }
-        ans += END;
-        sendToClient(clientSock, ans.c_str(), ans.length());
-        close(clientSock);
+        handleClient(clientSock);
     }
+    running = false;
+    terminate();
+}
+
+void Server::ServerThread::reset() {
+    k = defaultK;
+    metric = defaultMetric;
+    testPoints.clear();
+    points.clear();
+    testResults.clear();
+}
+
+bool Server::ServerThread::handleTrainUpload(string file) {
+    stringstream ss(file);
+    string line;
+    getline(ss, line);
+    string pointStr = line.substr(0, line.find_last_of(','));
+    if (!isPoint(pointStr)) {
+        return false;
+    }
+    Point point(pointStr);
+    int dimension = point.getDimension();
+    points[point] = line.substr(line.find_last_of(',') + 1);
+    while (getline(ss, line)) {
+        string pointStr = line.substr(0, line.find_last_of(','));
+        if (!isPoint(pointStr)) {
+            return false;
+        }
+        Point point(pointStr);
+        if (point.getDimension() != dimension) {
+            return false;
+        }
+        points[point] = line.substr(line.find_last_of(',') + 1);
+    }
+    return true;
+}
+
+bool Server::ServerThread::handleTestUpload(string file) {
+    stringstream ss(file);
+    string line;
+    int dimension = points.begin()->first.getDimension();
+    while (getline(ss, line)) {
+        string pointStr = line;
+        if (!isPoint(pointStr)) {
+            return false;
+        }
+        Point point(pointStr);
+        if (point.getDimension() != dimension) {
+            return false;
+        }
+        testPoints.push_back(point);
+    }
+    return true;
+}
+
+void Server::ServerThread::processTest() {
+    for (Point point : testPoints) {
+        testResults.push_back(classify(point, points, metric, k));
+    }
+}
+
+void Server::ServerThread::handleClient(int clientSock) {
+    
+}
+
+bool Server::ServerThread::isRunning() {
+    return running;
 }
 
 bool Server::ServerThread::isValid(const Point &point) const {
     return point.getDimension() == points.begin()->first.getDimension();
+}
+
+void Server::ServerThread::start() {
+    isStopped = false;
+    #ifdef WIN32
+    HANDLE thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&Server::ServerThread::run, this, 0, NULL);
+    #else
+    pthread_t thread;
+    pthread_create(&thread, NULL, (void* (*)(void*))&Server::ServerThread::run, this);
+    pthread_join(thread, NULL);
+    #endif
+}
+
+void Server::ServerThread::stop() {
+    isStopped = true;
 }
 
 Server::Server(int port) {
@@ -130,4 +189,38 @@ Server::Server(int port) {
         perror("error binding socket");
     }
     listen(sock, 1);
+}
+
+bool Server::acceptClient() {
+    struct sockaddr_in clientSin;
+    #ifdef WIN32
+    int addrLen = sizeof(clientSin);
+    #else
+    unsigned int addrLen = sizeof(clientSin);
+    #endif
+    int clientSock = accept(sock, (struct sockaddr *) &clientSin, &addrLen);
+    if (clientSock < 0) {
+        perror("error accepting client");
+        return false;
+    }
+    clientSocks.push(clientSock);
+    return true;
+}
+
+void Server::run() {
+    int threadCount = 10;
+    ServerThread* threads[threadCount];
+    for (int i = 0; i < threadCount; i++) {
+        threads[i] = &ServerThread(this);
+        threads[i]->start();
+    }
+    while (acceptClient());
+    for (int i = 0; i < threadCount; i++) {
+        threads[i]->stop();
+    }
+    for (int i = 0; i < threadCount; i++) {
+        while (threads[i]->isRunning()) {
+            sleep(2);
+        }
+    }
 }

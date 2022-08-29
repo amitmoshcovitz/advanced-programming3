@@ -26,12 +26,25 @@ class Server {
      * Runs the server.
      */
     void run();
+
+    private:
+    /**
+     * Adds a client to the queue of clients.
+     * @return if timed out
+     */
+    bool acceptClient();
     class ServerThread {
         private:
+        const int defaultK = 5;
+        const Point::DistanceMetric defaultMetric = Point::DistanceMetric::EUCLIDEAN;
         map<Point, string> points;
         int k;
         Point::DistanceMetric metric;
         Server* server;
+        vector<Point> testPoints;
+        vector<string> testResults;
+        bool isStopped;
+        bool running;
 
         public:
         /**
@@ -45,9 +58,20 @@ class Server {
         ~ServerThread();
 
         /**
-         * Runs the server.
+         * Creates and runs the thread.
          */
-        void run();
+        void start();
+
+        /**
+         * Stops the thread.
+         */
+        void stop();
+
+        /**
+         * Returns if the thread is running.
+         * @return if the thread is running
+         */
+        bool isRunning();
 
         private:
         /**
@@ -58,19 +82,16 @@ class Server {
         /**
          * Send a message to a client.
          * @param clientSock The socket to send the message to.
-         * @param buffer The message to send.
-         * @param bufferSize The length of the message.
+         * @param message The message to send.
          */
-        void sendToClient(int clientSock, const char* buffer, int bufferSize) const;
+        void sendToClient(int clientSock, string message) const;
 
         /**
          * Receive a message from a client.
          * @param clientSock The socket to receive the message from.
-         * @param buffer The buffer to store the message in.
-         * @param bufferSize The size of the buffer.
-         * @return Whether the message is complete.
+         * @return The message.
          */
-        bool receiveFromClient(int clientSock, char* buffer, int bufferSize) const;
+        string receiveFromClient(int clientSock) const;
 
         /**
          * Detects if a point is in the right dimension.
@@ -78,5 +99,39 @@ class Server {
          * @return Whether the point is in the right dimension.
          */
         bool isValid(const Point &point) const;
+
+        /**
+         * The task for the thread.
+         */
+        void run();
+
+        /**
+         * Resets the data from the previous client.
+         */
+        void reset();
+
+        /**
+         * Handles a client.
+         */
+        void handleClient(int clientSock);
+
+        /**
+         * Handles a client's train file upload.
+         * @param file the entire text of the file
+         * @return is the file valid
+         */
+        bool handleTrainUpload(string file);
+
+        /**
+         * Handles a client's test upload.
+         * @param file the entire text of the file
+         * @return is the file valid
+         */
+        bool handleTestUpload(string file);
+
+        /**
+         * Processes a client's test file.
+         */
+        void processTest();
     };
 };
