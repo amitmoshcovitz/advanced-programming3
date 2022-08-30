@@ -20,7 +20,7 @@
 
 using namespace std;
 
-#define IO 1
+#define IO 0
 
 class Server {
     private:
@@ -63,12 +63,18 @@ class Server {
         vector<Command*> commands;
         bool isStopped;
         bool running;
+        thread t;
 
         public:
         /**
          * Constructor for the server thread class.
          */
         ServerThread(Server* server);
+
+        /**
+         * Default destructor for the server thread class.
+         */
+        ServerThread();
 
         /**
          * Destructor for the server class.
@@ -84,6 +90,11 @@ class Server {
          * Stops the thread.
          */
         void stop();
+
+        /**
+         * Join the thread.
+         */
+        void join();
 
         /**
          * Returns if the thread is running.
@@ -187,6 +198,16 @@ class Server {
             public:
             ExitCommand(DefaultIO* dio, ServerThread* serverThread);
             void execute() const;
+        };
+
+        class CLI {
+            private:
+            vector<Command*>* commands;
+            ServerThread* serverThread;
+            int clientSock;
+            public:
+            CLI(ServerThread* serverThread, int clientSock);
+            void start();
         };
     };
 };

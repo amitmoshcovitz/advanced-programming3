@@ -72,17 +72,18 @@ void Server::ServerThread::run() {
         int clientSock = acceptClient();
         reset();
         if (clientSock <= 0) {
-            sleep(2);
+            this_thread::sleep_for(chrono::milliseconds(2000));
             continue;
         }
         dio.setSocket(clientSock);
-        handleClient(clientSock);
+        CLI cli(this, clientSock);
+        cli.start();
     }
     running = false;
-    terminate();
     #else
     reset();
-    handleClient(0);
+    CLI cli(this, 0);
+    cli.start();
     #endif
 }
 
@@ -182,7 +183,10 @@ bool Server::ServerThread::isValid(const Point &point) const {
 
 void Server::ServerThread::start() {
     isStopped = false;
-    thread t(&ServerThread::run, this);
+    t = thread(&ServerThread::run, this);
+}
+
+void Server::ServerThread::join() {
     t.join();
 }
 
@@ -213,9 +217,17 @@ bool Server::acceptClient() {
     #else
     unsigned int addrLen = sizeof(clientSin);
     #endif
+    struct timeval timeout;
+    timeout.tv_sec = 60;
+    timeout.tv_usec = 0;
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) < 0) {
+        perror("setsockopt failed\n");
+    }
+    if (setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout)) < 0) {
+        perror("setsockopt failed\n");
+    }
     int clientSock = accept(sock, (struct sockaddr *) &clientSin, &addrLen);
     if (clientSock < 0) {
-        perror("error accepting client");
         return false;
     }
     clientSocks.push(clientSock);
@@ -225,19 +237,23 @@ bool Server::acceptClient() {
 void Server::run() {
     #if IO == 0
     int threadCount = 10;
-    vector<ServerThread> threads;
+    vector<ServerThread*> threads;
     for (int i = 0; i < threadCount; i++) {
-        threads.push_back(ServerThread(this));
-        threads[i].start();
+        threads.push_back(new ServerThread(this));
+        threads[i]->start();
     }
     while (acceptClient());
     for (int i = 0; i < threadCount; i++) {
-        threads[i].stop();
+        threads[i]->stop();
     }
     for (int i = 0; i < threadCount; i++) {
-        while (threads[i].isRunning()) {
-            sleep(2);
+        while (threads[i]->isRunning()) {
+            this_thread::sleep_for(chrono::milliseconds(2000));
         }
+    }
+    for (int i = 0; i < threadCount; i++) {
+        threads[i]->join();
+        delete threads[i];
     }
     #else
     ServerThread thread(this);
@@ -424,4 +440,14 @@ Server::ServerThread::ExitCommand::ExitCommand(DefaultIO* dio, ServerThread* ser
 
 void Server::ServerThread::ExitCommand::execute() const {
     
+}
+
+Server::ServerThread::CLI::CLI(ServerThread* serverThread, int clientSocket) {
+    this->commands = &serverThread->commands;
+    this->serverThread = serverThread;
+    this->clientSock = clientSocket;
+}
+
+void Server::ServerThread::CLI::start() {
+    serverThread->handleClient(clientSock);
 }
