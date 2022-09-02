@@ -55,7 +55,7 @@ $ cd advanced-programming2
 $ g++ *.cpp server/server.cpp -o server.out -std=c++11
 
 # Compile the client
-$ g++ client/client.cpp -o client.out -std=c++11
+$ g++ *.cpp client/client.cpp -o client.out -std=c++11
 
 # Run the server
 $ ./server.out
