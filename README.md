@@ -58,10 +58,10 @@ $ g++ *.cpp server/server.cpp -o server.out -std=c++11
 $ g++ client/client.cpp -o client.out -std=c++11
 
 # Run the server
-$ ./server.out {path to classified file} {the k to run the knn on}
+$ ./server.out
 
 # Run the client
-$ ./client.out {the path unclassified file} {the path to the output file}
+$ ./client.out
 ```
 
 ## Implementation
@@ -70,6 +70,12 @@ $ ./client.out {the path unclassified file} {the path to the output file}
   - The classification of every point is saved in a map. The key is the reference and the value is a string representation of the classification.
   - Find k closest objects in O(n) time complexity using the quick select algorithm.
   - Iterating the k closest points and deciding the classification of the object based on the largest number of simular points.
+* Calculating the Confusion Matrix:
+  - A confusion matrix is a matrix that shows the percentage of correct classification.
+  - We can calculate the confusion matrix by iterating the classification map and comparing the classification of the object with the real classification.
+* Rounding the Percentages in the Confusion Matrix:
+  - We can calculate the percentages in the confusion matrix by dividing the number of correct classification by the total number of classification.
+  - Rounding to 100%: We calculate the remainder of the division for each percentage and the amount left to get to 100%. We add 1 to the percentages with the highest remainder.
 * The server:
   - Creates a string containing all the information from the socket.
   - Runs the algorithms that was in the previous assignment.
