@@ -445,20 +445,24 @@ void Server::ServerThread::AnalyzeCommand::execute() const {
             row[modulus[i].second]++;
         }
     }
-    string output = "Confusion matrix:\n";
+    dio->write("Confusion matrix:\n");
+    dio->read();
+    string output = "";
     for (int i = 0; i < types.size(); i++) {
         output += "\t" + types[i];
     }
-    output += "\n";
+    dio->write(output + "\n");
+    dio->read();
     for (int i = 0; i < types.size(); i++) {
-        output += types[i] + "\t";
+        output = types[i] + "\t";
         for (int j = 0; j < types.size(); j++) {
             output += to_string(confusionMatrix[i][j]) + "%\t";
         }
-        output += "\n";
+        dio->write(output + "\n");
+        dio->read();
     }
-    output += "K = " + to_string(serverThread->k) + ", distance metric = " + Point::toString(serverThread->metric) + "\n";
-    dio->write(output);
+    output = "K = " + to_string(serverThread->k) + ", distance metric = " + Point::toString(serverThread->metric);
+    dio->write(output + "\n");
     dio->read();
 }
 
