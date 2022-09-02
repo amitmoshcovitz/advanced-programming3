@@ -1,27 +1,18 @@
 #include <string>
 #include <fstream>
+#include "../SocketIO.h"
+#include <thread>
 
 #define ERROR -1
 #define SUCCESS 0
 #define END '\u0003'
 
+using namespace std;
+
 class Client {
     private:
-    /**
-     * Sends a line of text to the socket.
-     * @param line The line.
-     * @param socket The socket.
-     * @return Whether an error accured.
-     */
-    int sendLine(std::string line, int socket);
-    /**
-     * Gets a line of text from the socket.
-    * @param socket The socket.
-     * @param buffer The buffer to load the information.
-     * @param bufferSize The size of the buffer.
-     * @return Whether an error accured.
-     */
-    int getLine(int socket, char* buffer, int bufferSize);
+    SocketIO socketIO;
+
     /**
      * Writes a line of text the to a file.
      * @param line The line.
@@ -35,15 +26,32 @@ class Client {
     /**
      * Sends a line of text to the socket.
      * @param filePath The path to the file.
-     * @param socket The socket.
      * @return Whether an error accured.
      */
-    int sendFile(std::string filePath, int socket);
+    int sendFile(std::string filePath);
     /**
      * Writes the information from a socket to a file.
-     * @param socket The socket.
      * @param filePath The path to the file.
-     * @return Whether an error accured.
+     * @param str The string to write.
      */
-    int writeFileFromSocket(int socket, std::string filePath);
+    void writeFile(std::string filePath, string str);
+
+    /**
+     * Sends a line of text to the socket.
+     * @param line The line.
+     * @return int Whether an error accured.
+     */
+    void sendLine(std::string line);
+
+    /**
+     * Gets an input from the socket.
+     * @return The input.
+     */
+    string getInput() const;
+
+    /**
+     * Creates a new client.
+     * @param socket The socket.
+     */
+    Client(int socket);
 };

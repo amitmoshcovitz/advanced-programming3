@@ -11,5 +11,6 @@ class SocketIO : public DefaultIO {
     void write(std::string) const;
     std::string read() const;
     void setSocket(int sock);
+    int getSocket() const;
 };
 #endif

@@ -18,6 +18,7 @@
 #include "server.h"
 #include "../StandardIO.h"
 #define END '\u0003'
+#define INPUT_EXPECTED "input expected"
 
 using namespace std;
 
@@ -155,22 +156,28 @@ void Server::ServerThread::handleClient(int clientSock) {
     int choice;
     int commandCount = commands.size();
     do {
-        dio.write("Welcome to the KNN Classifier Server. Please choose an option:");
+        dio.write("Welcome to the KNN Classifier Server. Please choose an option:\n");
+        dio.read();
         for (int i = 0; i < commandCount; i++) {
-            dio.write(to_string(i + 1) + " " + commands[i]->getDescription());
+            dio.write(to_string(i + 1) + " " + commands[i]->getDescription() + "\n");
+            dio.read();
         }
+        dio.write(INPUT_EXPECTED);
         string input = dio.read();
         if (!isInteger(input)) {
             dio.write("Invalid input.");
+            dio.read();
             continue;
         }
         choice = stoi(input);
         if (choice > commandCount|| choice <= 0) {
             dio.write("Invalid input.");
+            dio.read();
             continue;
         }
         commands[choice - 1]->execute();
     } while(choice != commandCount);
+    dio.write("Goodbye!");
 }
 
 bool Server::ServerThread::isRunning() {
@@ -268,20 +275,28 @@ Server::ServerThread::UploadCommand::UploadCommand(DefaultIO* dio, ServerThread*
 }
 
 void Server::ServerThread::UploadCommand::execute() const {
-    dio->write("Please upload your local train CSV file.");
+    dio->write("Please upload your local train CSV file.\n");
+    dio->read();
+    dio->write(INPUT_EXPECTED);
     string file = dio->read();
     if (!serverThread->handleTrainUpload(file)) {
-        dio->write("Upload failed.");
+        dio->write("Upload failed.\n");
+        dio->read();
         return;
     }
-    dio->write("Upload complete.");
-    dio->write("Please upload your local test CSV file.");
+    dio->write("Upload complete.\n");
+    dio->read();
+    dio->write("Please upload your local test CSV file.\n");
+    dio->read();
+    dio->write(INPUT_EXPECTED);
     file = dio->read();
     if (!serverThread->handleTestUpload(file)) {
-        dio->write("Upload failed.");
+        dio->write("Upload failed.\n");
+        dio->read();
         return;
     }
-    dio->write("Upload complete.");
+    dio->write("Upload complete.\n");
+    dio->read();
 }
 
 Server::ServerThread::AlgorithmSettingsCommand::AlgorithmSettingsCommand(DefaultIO* dio, ServerThread* serverThread) {
@@ -291,23 +306,28 @@ Server::ServerThread::AlgorithmSettingsCommand::AlgorithmSettingsCommand(Default
 }
 
 void Server::ServerThread::AlgorithmSettingsCommand::execute() const {
-    dio->write("The current KNN parameters are: K = " + to_string(serverThread->k) + ", distance metric = " + Point::toString(serverThread->metric));
+    dio->write("The current KNN parameters are: K = " + to_string(serverThread->k) + ", distance metric = " + Point::toString(serverThread->metric) + "\n");
+    dio->read();
+    dio->write(INPUT_EXPECTED);
     string str = dio->read();
+    if (str == "") return;
     string k = str.substr(0, str.find(' '));
-    dio->write(k);
     if (!isInteger(k)) {
-        dio->write("Invalid value for K");
+        dio->write("Invalid value for K\n");
+        dio->read();
         return;
     }
     serverThread->k = stoi(k);
     string metricStr = str.substr(str.find(' ') + 1);
     Point::DistanceMetric metric = Point::stringToMetric(metricStr);
     if (metric == Point::DistanceMetric::ERR) {
-        dio->write("Invalid value for distance metric");
+        dio->write("Invalid value for distance metric\n");
+        dio->read();
         return;
     }
     serverThread->metric = metric;
-    dio->write("Updated KNN parameters.");
+    dio->write("Updated KNN parameters.\n");
+    dio->read();
 }
 
 Server::ServerThread::DetectCommand::DetectCommand(DefaultIO* dio, ServerThread* serverThread) {
@@ -331,9 +351,11 @@ Server::ServerThread::DisplayCommand::DisplayCommand(DefaultIO* dio, ServerThrea
 void Server::ServerThread::DisplayCommand::execute() const {
     int length = serverThread->testResults.size();
     for (int i = 0; i < length; i++) {
-        dio->write(to_string(i + 1) + " " + serverThread->testResults[i]);
+        dio->write(to_string(i + 1) + " " + serverThread->testResults[i] + "\n");
+        dio->read();
     }
-    dio->write("Done.");
+    dio->write("Done.\n");
+    dio->read();
 }
 
 Server::ServerThread::DownloadCommand::DownloadCommand(DefaultIO* dio, ServerThread* serverThread) {
@@ -343,14 +365,21 @@ Server::ServerThread::DownloadCommand::DownloadCommand(DefaultIO* dio, ServerThr
 }
 
 void Server::ServerThread::DownloadCommand::execute() const {
+    dio->write("Please enter the file path to download the results to.\n");
+    dio->read();
+    dio->write(INPUT_EXPECTED);
     #if IO == 0
+    dio->read();
     int length = serverThread->testResults.size();
+    string str;
     for (int i = 0; i < length; i++) {
-        dio->write(to_string(i + 1) + " " + serverThread->testResults[i]);
+        str += (to_string(i + 1) + " " + serverThread->testResults[i] + "\n");
     }
-    dio->write("Done.");
+    dio->write(str);
+    dio->read();
+    dio->write("Done.\n");
+    dio->read();
     #else
-    dio->write("Please enter the file path to download the results to.");
     string path = dio->read();
     ofstream file(path);
     if (!file.is_open()) {
@@ -428,8 +457,9 @@ void Server::ServerThread::AnalyzeCommand::execute() const {
         }
         output += "\n";
     }
-    output += "K = " + to_string(serverThread->k) + ", distance metric = " + Point::toString(serverThread->metric);
+    output += "K = " + to_string(serverThread->k) + ", distance metric = " + Point::toString(serverThread->metric) + "\n";
     dio->write(output);
+    dio->read();
 }
 
 Server::ServerThread::ExitCommand::ExitCommand(DefaultIO* dio, ServerThread* serverThread) {

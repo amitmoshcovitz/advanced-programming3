@@ -12,65 +12,53 @@
 #include <fstream>
 #include "client.h"
 #include <sstream>
+#include <thread>
+#define INPUT_EXPECTED "input expected"
 
 using namespace std;
 
-int Client::sendFile(std::string filePath, int socket) {
+void Client::sendLine(string line) {
+    socketIO.write(line);
+}
+
+int Client::sendFile(std::string filePath) {
     ifstream file(filePath);
     if (!file.is_open())
         return ERROR;
 
     string line;
     string fullStr;
+    getline(file, fullStr);
     while (getline(file, line)) {
-        fullStr += line + "\n";
+        fullStr += "\n" + line;
     }
-    fullStr += END;
-    int sent_bytes = send(socket, fullStr.c_str(), fullStr.length(), 0);
-    if (sent_bytes < 0) {
-        file.close();
-        return ERROR;
-    }
+    socketIO.write(fullStr);
     file.close();
     return SUCCESS;
 }
 
-int Client::getLine(int socket, char* buffer, int bufferSize) {
-    int read_bytes = recv(socket, buffer, bufferSize, 0);
-    if(read_bytes < 0)
-        return ERROR;
-    return SUCCESS;
-}
-
-int Client::writeFileFromSocket(int socket, std::string filePath) {
+void Client::writeFile(std::string filePath, string str) {
     ofstream file(filePath);
     if (!file.is_open())
-        return ERROR;
-    char buffer[Client::DEFAULT_BUFFER_SIZE];
-    int bufferSize = Client::DEFAULT_BUFFER_SIZE;
-    std::string str = "";
-    std::string strBuffer;
-    do {
-        int result = Client::getLine(socket, buffer, bufferSize);
-        if (result < 0) {
-            file.close();
-            return ERROR;
-        } 
-        strBuffer = string(buffer);
-        str += buffer;    
-    } while(strBuffer.find(END) == string::npos);
-    str = str.substr(0, str.length() - 1);
-    file << str;
+        return;
+    stringstream ss(str);
+    string line;
+    while (getline(ss, line)) {
+        file << line << endl;
+    }
     file.close();
-    return SUCCESS;
 }
 
+string Client::getInput() const {
+    return socketIO.read();
+}
+
+Client::Client(int socket) {
+    socketIO = SocketIO();
+    socketIO.setSocket(socket);
+}
 
 int main(int argc, char const *argv[]) {
-
-    if (argc < 3)
-        perror("Incorrect number of arguments");
-
     const char* ip_address = "127.0.0.1";
     const int port_no = 5555;
 
@@ -89,15 +77,41 @@ int main(int argc, char const *argv[]) {
         perror("error connecting to server");
     }
 
-    Client user;
-    int resultSending = user.sendFile(argv[1], sock);
-    if (resultSending < 0)
-        perror("An error occured sending the file to the server");
-
-    int resultWriting = user.writeFileFromSocket(sock, argv[2]);
-    if (resultWriting < 0)
-        perror("An error occured writing the results to a file");
-
-    close(sock);
+    Client user(sock);
+    string line;
+    string input;
+    string last_input;
+    thread* downloadThread = nullptr;
+    while (true) {
+        input = user.getInput();
+        if (input == "Goodbye!") {
+            close(sock);
+            return 0;
+        }
+        if (input == INPUT_EXPECTED) {
+            getline(cin, line);
+            if (last_input.rfind("Please upload", 0) == 0) {
+                if (user.sendFile(line) == ERROR) {
+                    user.sendLine("a,a");
+                }
+            } else if (last_input.rfind("Please enter", 0) == 0) {
+                user.sendLine(line);
+                if (downloadThread) {
+                    downloadThread->join();
+                    delete downloadThread;
+                }
+                downloadThread = new thread(&Client::writeFile, &user, line, user.getInput());
+                user.sendLine("done");
+            } else {
+                user.sendLine(line);
+            }
+        } else {
+            cout << input;
+            user.sendLine("done");
+        }
+        last_input = input;
+    }
+    downloadThread->join();
+    delete downloadThread;
     return 0;
 }

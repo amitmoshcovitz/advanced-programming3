@@ -27,15 +27,15 @@ SocketIO::SocketIO() {
 }
 
 void SocketIO::write(string message) const {
-    int sentBytes = send(socket, (message + "\n" + END).c_str(), message.length() + 2, 0);
+    int sentBytes = send(socket, (message + END).c_str(), message.length() + 2, 0);
     if (sentBytes < 0) {
         perror("error sending to client");
     }
 }
 
 string SocketIO::read() const {
-    const int bufferSize = 1024;
-    static char buffer[bufferSize];
+    const int bufferSize = 10000;
+    char buffer[bufferSize];
     stringstream ss;
     do {
         buffer[0] = '\0';
@@ -53,4 +53,8 @@ string SocketIO::read() const {
 
 void SocketIO::setSocket(int sock) {
     socket = sock;
+}
+
+int SocketIO::getSocket() const {
+    return socket;
 }

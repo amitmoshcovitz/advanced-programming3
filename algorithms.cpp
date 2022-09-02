@@ -2,6 +2,7 @@
 #include <sstream>
 #include "point.h"
 #include <map>
+#include <iostream>
 
 using namespace std;
 
