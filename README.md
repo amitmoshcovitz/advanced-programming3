@@ -46,10 +46,10 @@ To clone and run this application, you'll need [Git](https://git-scm.com) instal
 
 ```bash
 # Clone this repository
-$ git clone https://github.com/amitmoshcovitz/advanced-programming2
+$ git clone https://github.com/amitmoshcovitz/advanced-programming3
 
 # Go into the repository
-$ cd advanced-programming2
+$ cd advanced-programming3
 
 # Compile the server
 $ g++ *.cpp server/server.cpp -o server.out -std=c++11
